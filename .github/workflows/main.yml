@@ -21,7 +21,7 @@ jobs:
         NAME: Loganysl
       with:
         arch: arm64
-        compiler: clang/23.1
+        compiler: gcc/12
         defconfig: blossom_defconfig
         image: Image.gz-dtb
 
