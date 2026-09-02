@@ -12,7 +12,7 @@ jobs:
 
     - name: Set up MemKernel as a module (M-OUT) with specified name
       run: |
-        curl -LSs "https://raw.githubusercontent.com/aiichi/MemKernel/main/kernel/setup.sh" | bash -s M
+        curl -LSs "https://raw.githubusercontent.com/Poko-Apps/MemKernel/main/kernel/setup.sh" | bash -s M
 
     - name: Android kernel build
       uses: lemniskett/android-kernel-actions@master
@@ -28,7 +28,7 @@ jobs:
     - name: Upload Kernel and Module
       uses: actions/upload-artifact@v4
       with:
-        name: module
+        name: moduleandkernel
         path: |
           ${{ steps.build.outputs.outfile }}
           ./out/drivers/memkernel/memkernel.ko
