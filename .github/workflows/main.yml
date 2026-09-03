@@ -23,7 +23,7 @@ jobs:
         arch: arm64
         compiler: clang/14
         defconfig: blossom_defconfig
-        image: Image.gz-dtb
+        image: Image.gz
 
     - name: Upload Kernel and Module
       uses: actions/upload-artifact@v4
