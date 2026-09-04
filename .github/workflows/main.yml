@@ -1,34 +1,103 @@
-name: Kernel Build
+name: Build Kernel 4.19.191 & Publish Release
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-    - name: Checkout kernel source
-      uses: actions/checkout@v4
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Set up MemKernel as a module (M-OUT) with specified name
-      run: |
-        curl -LSs "https://raw.githubusercontent.com/aiichi/MemKernel/main/kernel/setup.sh" | bash -s M dogi
+      - name: Set up Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential bc bison flex libssl-dev libncurses5-dev \
+            git zip unzip curl libxml2-utils xml2 ccache libelf-dev
 
-    - name: Android kernel build
-      uses: lemniskett/android-kernel-actions@master
-      id: build
-      env:
-        NAME: Loganysl
-      with:
-        arch: arm64
-        compiler: clang/14
-        defconfig: blossom_defconfig
-        image: Image.gz
+      - name: Setup KernelSU Next
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/rifs28/KernelSU-Next/next/kernel/setup.sh" | bash -s next
 
-    - name: Upload Kernel and Module
-      uses: actions/upload-artifact@v4
-      with:
-        name: modulesssa
-        path: |
-          ${{ steps.build.outputs.outfile }}
-          ./out/drivers/memkernel/memkernel.ko
+      - name: Download AOSP Clang & GCC Toolchains
+        run: |
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 gcc64
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 gcc32
+
+      - name: Build Kernel with AOSP Clang
+        run: |
+          export ARCH=arm64
+          export SUBARCH=arm64
+          
+          export PATH=$(pwd)/clang/bin:$(pwd)/gcc64/bin:$(pwd)/gcc32/bin:$PATH
+          
+          export CC=clang
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+          
+          export LD=ld.lld
+          export AR=llvm-ar
+          export NM=llvm-nm
+          export OBJCOPY=llvm-objcopy
+          export OBJDUMP=llvm-objdump
+          export STRIP=llvm-strip
+
+          # Apne device ka defconfig yahan badlein
+          make O=out ARCH=arm64 blossom_defconfig
+          
+          scripts/config --file out/.config \
+            -e KSU \
+            -e KSU_NEXT
+
+          make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu-
+
+      - name: Package with AnyKernel3
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3 AnyKernel3
+          
+          if [ -f out/arch/arm64/boot/Image.gz-dtb ]; then
+            cp out/arch/arm64/boot/Image.gz-dtb AnyKernel3/
+          elif [ -f out/arch/arm64/boot/Image.gz ]; then
+            cp out/arch/arm64/boot/Image.gz AnyKernel3/
+          elif [ -f out/arch/arm64/boot/Image ]; then
+            cp out/arch/arm64/boot/Image AnyKernel3/
+          else
+            echo "Kernel Image not found!" && exit 1
+          fi
+
+          cd AnyKernel3
+          zip -r9 ../KernelSU-Next-4.19.191-AnyKernel3.zip * -x .git README.md *placeholder
+
+      - name: Generate Release Tag Name
+        id: tag
+        run: |
+          echo "RELEASE_TAG=v4.19.191-$(date +'%Y%m%d-%H%M')" >> $GITHUB_ENV
+
+      - name: Publish to GitHub Releases
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "KernelSU-Next-4.19.191-AnyKernel3.zip"
+          tag: ${{ env.RELEASE_TAG }}
+          name: "KernelSU Next 4.19.191 Release (${{ env.RELEASE_TAG }})"
+          body: |
+            ## Automated Kernel Build
+            - **Base Version:** 4.19.191
+            - **Compiler:** AOSP Clang (r416183b)
+            - **Features:** Integrated KernelSU Next
+            - **Flashable Package:** AnyKernel3 Zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact Backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: KernelSU-Next-4.19.191-Flashable-Zip
+          path: KernelSU-Next-4.19.191-AnyKernel3.zip
