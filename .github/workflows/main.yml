@@ -37,6 +37,7 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           
+          # Exact bin subfolder paths set kiye gaye hain
           export PATH=$(pwd)/clang/bin:$(pwd)/gcc64/bin:$(pwd)/gcc32/bin:$PATH
           
           export CC=clang
@@ -51,14 +52,14 @@ jobs:
           export OBJDUMP=llvm-objdump
           export STRIP=llvm-strip
 
-          # Apne device ka defconfig yahan badlein
+          # Apne device ki defconfig file ka naam yahan likhein (e.g. blossom_defconfig)
           make O=out ARCH=arm64 blossom_defconfig
           
           scripts/config --file out/.config \
             -e KSU \
             -e KSU_NEXT
 
-          make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu-
+          make -j$(nproc --all) O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
       - name: Package with AnyKernel3
         run: |
