@@ -22,9 +22,9 @@ jobs:
             build-essential bc bison flex libssl-dev libncurses5-dev \
             git zip unzip curl libxml2-utils xml2 ccache libelf-dev
 
-      - name: Setup KernelSU Next
+            - name: Setup KernelSU Next
         run: |
-          curl -LSs "https://raw.githubusercontent.com/rifs28/KernelSU-Next/next/kernel/setup.sh" | bash -s next
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
 
       - name: Download AOSP Clang & GCC Toolchains
         run: |
