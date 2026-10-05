@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04 # Purane kernels ke liye 20.04 zyada stable hota hai
+    runs-on: ubuntu-22.04 # Purane kernels ke liye 22.04 zyada stable hota hai
 
     steps:
     - name: Checkout Repository
