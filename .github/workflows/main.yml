@@ -23,25 +23,28 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y bc bison build-essential ccache curl flex git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
-    - name: Clone Toolchain (Proton Clang)
+    - name: Clone Toolchain (AOSP Clang 12)
       run: |
-        git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
+        # Proton Clang ki jagah AOSP Clang 12 use kar rahe hain
+        git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git clang
 
     - name: Build Kernel
       run: |
         export ARCH=arm64
         export SUBARCH=arm64
         export PATH=$(pwd)/clang/bin:$PATH
-        export CC=clang
+        export CC="ccache clang"
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export CLANG_TRIPLE=aarch64-linux-gnu-
 
-        # Defconfig check kar lena sahi naam
+        # IMPORTANT: Yahan apna sahi defconfig naam check karo
+        # Agar 'vendor/blossom_defconfig' hai toh woh likho
         make O=out ARCH=arm64 blossom_defconfig
         
-        # -j2 (RAM safe) aur Wno-error (warning ignore) add kiya gaya hai
-        make -j2 O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- KCFLAGS="-Wno-error"
+        # V=1 add kiya hai taaki log me asli error saaf dikhe
+        # CONFIG_WERROR=n se warnings build ko fail nahi karengi
+        make -j2 O=out ARCH=arm64 CC="ccache clang" CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- CONFIG_WERROR=n V=1
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
