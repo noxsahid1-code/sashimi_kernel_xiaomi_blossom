@@ -1,16 +1,16 @@
 name: Build Kernel
 
 on:
-  workflow_dispatch: # Isse tum manually bhi build trigger kar sakte ho
+  workflow_dispatch:
   push:
     branches:
-      - sashimi # Screenshot me yeh branch dikh rahi hai
+      - sashimi
       - main
       - master
 
 jobs:
   build:
-    runs-on: ubuntu-22.04 # Purane kernels ke liye 22.04 zyada stable hota hai
+    runs-on: ubuntu-22.04 # 20.04 deprecated ho chuka hai, 22.04 use karo
 
     steps:
     - name: Checkout Repository
@@ -19,13 +19,12 @@ jobs:
         submodules: recursive
 
     - name: Install Dependencies
-  run: |
-    sudo apt-get update
-    sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32readline-dev lib32z1-dev libelf-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
     - name: Clone Toolchain (Proton Clang)
       run: |
-        # Agar tumhe koi aur toolchain chahiye (jaise AOSP Clang ya GCC), toh yahan URL change kar sakte ho
         git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang
 
     - name: Build Kernel
@@ -38,17 +37,13 @@ jobs:
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export CLANG_TRIPLE=aarch64-linux-gnu-
 
-        # IMPORTANT: Yahan apna sahi defconfig naam daalo. 
-        # Yeh usually 'vendor/blossom_defconfig' ya 'blossom_defconfig' hota hai. 
-        # Check karo 'arch/arm64/configs/' folder me.
+        # Yahan apna sahi defconfig naam check karo
         make O=out ARCH=arm64 blossom_defconfig
         
-        # Compile the kernel
         make -j$(nproc --all) O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi-
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Image
-        # MTK devices me mostly 'Image.gz-dtb' ya 'Image.gz' banta hai. Check karo 'out/arch/arm64/boot/' folder me.
-        path: out/arch/arm64/boot/Image.gz
+        path: out/arch/arm64/boot/Image.gz-dtb
