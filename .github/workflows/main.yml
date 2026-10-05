@@ -1,7 +1,7 @@
 name: Build Kernel
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Manual build trigger
   push:
     branches:
       - sashimi
@@ -25,7 +25,7 @@ jobs:
 
     - name: Clone Toolchain (AOSP Clang 12)
       run: |
-        # Proton Clang ki jagah AOSP Clang 12 use kar rahe hain
+        # AOSP Clang 12 use kar rahe hain
         git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b.git clang
 
     - name: Build Kernel
@@ -42,12 +42,12 @@ jobs:
         # Agar 'vendor/blossom_defconfig' hai toh woh likho
         make O=out ARCH=arm64 blossom_defconfig
         
-        # V=1 add kiya hai taaki log me asli error saaf dikhe
-        # CONFIG_WERROR=n se warnings build ko fail nahi karengi
+        # V=1 se log me asli error saaf dikhega
         make -j2 O=out ARCH=arm64 CC="ccache clang" CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- CONFIG_WERROR=n V=1
 
     - name: Upload Kernel Image
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Image
+        # Agar 'Image.gz' banti hai toh yahan 'Image.gz-dtb' ki jagah 'Image.gz' kar dena
         path: out/arch/arm64/boot/Image.gz
